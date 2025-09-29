@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+<title>Amazon Redesign Prototype</title>
+<style>
+  :root{
+    --bg:#f6f7fb;
+    --surface:#ffffff;
+    --ink:#0f172a;
+    --muted:#6b7280;
+    --primary:#2563eb;
+    --accent:#ff9900;
+    --deal:#e11d48;
+    --border:#e7e9f2;
+    --radius-card:12px;
+    --radius-chip:20px;
+    --shadow:0 2px 8px rgba(15,23,42,.06);
+    --shadow-hover:0 8px 24px rgba(15,23,42,.08);
+    --yellow:#ffd814;
+    --yellow-text:#0f1111;
+    --green:#16a34a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: ui-rounded, ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+                 Segoe UI, Roboto, Helvetica, Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft Yahei", sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;
+  }
+  .page{min-height:100%; display:flex; flex-direction:column;}
+  header{
+    position:sticky; top:0; z-index:50;
+    background:linear-gradient(180deg,#eaf1ff, #f6f7fb 90%);
+    padding: calc(env(safe-area-inset-top) + 4px) 12px 10px;
+    box-shadow:0 0.5px 0 rgba(15,23,42,.06);
+    backdrop-filter:saturate(120%) blur(4px);
+  }
+  .search{
+    display:flex; align-items:center; gap:10px;
+    background:#fff; border-radius:999px; padding:10px 12px;
+    border:1px solid var(--border);
+    min-height:44px;
+  }
+  .search input{flex:1; border:0; outline:0; background:transparent; font-size:15px; font-weight:500;}
+  .icon{width:20px;height:20px;opacity:.78}
+  .chips{margin-top:10px; display:flex; gap:8px; overflow:auto; padding-bottom:2px}
+  .chip{
+    white-space:nowrap; padding:10px 14px; border-radius:var(--radius-chip);
+    background:#fff; border:1px solid var(--border); color:#0f172a; font-weight:700; font-size:13px;
+    line-height:1; min-height:36px; cursor:pointer;
+  }
+  .chip.primary{background:#0f172a; color:#fff; border-color:#0f172a}
+  main{flex:1; padding:10px 12px 96px}
+  section{margin:16px 0}
+  .section-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px}
+  .section-head h2{margin:0; font-size:18px; font-weight:800}
+  .link{color:var(--primary); font-weight:700; text-decoration:none; font-size:14px}
+  .grid{display:grid; gap:12px; grid-template-columns:repeat(2, minmax(0,1fr))}
+  @media(min-width:560px){ .grid{grid-template-columns:repeat(3,minmax(0,1fr));} }
+  .card{
+    background:var(--surface); border-radius:var(--radius-card); overflow:hidden;
+    border:1px solid var(--border); box-shadow:var(--shadow);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .card:focus-within,.card:hover{transform:translateY(-1px); box-shadow:var(--shadow-hover)}
+  .thumb{aspect-ratio:1/1; background:#eef2ff; display:flex; align-items:center; justify-content:center}
+  .thumb img{width:100%; height:100%; object-fit:cover}
+  .meta{padding:12px}
+  .title{font-size:15px; font-weight:800; margin:0 0 6px; min-height:2.6em}
+  .price{display:flex; align-items:center; gap:6px; font-weight:900; font-size:15px}
+  .cut{color:var(--muted); text-decoration:line-through; font-weight:700}
+  .deal-tag{align-self:flex-start; background:var(--deal); color:#fff; font-size:12px; padding:3px 8px; border-radius:10px; margin-bottom:6px; font-weight:800}
+  .h-scroll{display:flex; gap:10px; overflow:auto; padding-bottom:6px; scroll-snap-type:x mandatory}
+  .h-scroll .card{min-width:72%; flex:0 0 auto; scroll-snap-align:start}
+  .banner{
+    background:#0f172a; color:#fff; border-radius:var(--radius-card); padding:14px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    box-shadow:var(--shadow);
+  }
+  .pill{display:inline-block; padding:3px 10px; border-radius:999px; border:1px solid #314057; font-size:12px; color:#cbd5e1; font-weight:700}
+
+  /* Bottom navigation */
+  nav.bottom{
+    position:fixed; left:0; right:0; bottom:0; z-index:60;
+    padding:6px 10px calc(8px + env(safe-area-inset-bottom));
+    background:#fff; border-top:1px solid var(--border);
+    display:flex; justify-content:space-around; align-items:center;
+    height:64px;
+  }
+  .nav-btn{
+    display:flex; flex-direction:column; align-items:center; gap:2px; color:#0f172a; text-decoration:none; font-size:12px;
+    min-width:56px; min-height:44px; justify-content:center;
+    border-radius:10px; padding:4px 6px; cursor:pointer;
+  }
+  .nav-btn .ico{width:22px; height:22px}
+  .nav-btn.active{color:var(--primary); background:rgba(37,99,235,.08)}
+
+  /* FAB */
+  .fab{
+    position:fixed; right:16px; bottom:86px; z-index:70;
+    width:56px; height:56px; border-radius:16px;
+    background:linear-gradient(135deg,var(--primary), #4f46e5);
+    color:#fff; display:grid; place-items:center;
+    box-shadow:0 10px 28px rgba(37,99,235,.35);
+    border:0; cursor:pointer;
+  }
+  .fab svg{width:26px;height:26px}
+  .toast{
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom: calc(86px + 70px); z-index:80;
+    padding:10px 14px; border-radius:999px; background:#111; color:#fff; font-size:13px; opacity:0; pointer-events:none;
+    transition:opacity .25s ease;
+  }
+  .toast.show{opacity:.95}
+
+  /* Cart Styles */
+  .cart-header{display:flex; align-items:center; justify-content:space-between; margin:10px 0 6px;}
+  .cart-header h1{font-size:20px; margin:0; font-weight:800}
+  .cart-list{display:flex; flex-direction:column; gap:12px}
+  .cart-item{
+    background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow);
+    padding:12px; display:grid; grid-template-columns:92px 1fr; gap:10px;
+  }
+  .cart-thumb{width:92px; height:92px; border-radius:10px; overflow:hidden; background:#eef2ff; display:flex; align-items:center; justify-content:center}
+  .cart-thumb img{width:100%; height:100%; object-fit:cover}
+  .cart-info .title{font-size:15px; font-weight:800; margin:0 0 6px}
+  .cart-meta{font-size:12px; color:#5b6473; display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px}
+  .cart-price{font-weight:900; font-size:16px; margin:4px 0 8px}
+  .qty-row{display:flex; align-items:center; gap:8px; margin:6px 0 10px}
+  .qty-btn{width:32px; height:32px; border-radius:999px; border:1px solid var(--border); background:#fff; display:grid; place-items:center; font-weight:900; cursor:pointer;}
+  .qty-num{min-width:24px; text-align:center; font-weight:800}
+  .actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;}
+  .btn-chip{
+    border:1px solid var(--border); background:#fff; border-radius:999px; padding:8px 12px; font-weight:700; font-size:13px; cursor:pointer;
+  }
+  .btn-chip.danger{border-color:#fecaca; color:#991b1b; background:#fff}
+  .btn-checkout{
+    background:var(--yellow); color:var(--yellow-text);
+    border:0; border-radius:999px; padding:10px 14px; font-weight:800; font-size:14px; box-shadow:var(--shadow); cursor:pointer;
+  }
+  .divider{height:1px; background:var(--border); margin:12px 0}
+  .empty-tip{padding:20px 0; color:#64748b; text-align:center;}
+
+  /* Account Styles */
+  .account-header{
+    background:#fff; border-radius:var(--radius-card); padding:16px; margin-bottom:16px; box-shadow:var(--shadow);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .user-info{display:flex; align-items:center; gap:12px;}
+  .avatar{width:48px; height:48px; border-radius:50%; background:var(--primary); color:#fff; display:grid; place-items:center; font-weight:800;}
+  .user-name{font-size:16px; font-weight:800;}
+  .user-controls{display:flex; gap:8px;}
+  .icon-btn{width:32px; height:32px; border:1px solid var(--border); border-radius:8px; background:#fff; display:grid; place-items:center; cursor:pointer;}
+  .account-tabs{display:flex; gap:8px; margin-bottom:16px; overflow:auto;}
+  .tab{padding:8px 16px; border:1px solid var(--border); border-radius:999px; background:#fff; font-weight:700; font-size:13px; cursor:pointer;}
+  .tab.active{background:var(--primary); color:#fff; border-color:var(--primary);}
+  .order-card{
+    background:#fff; border:1px solid var(--border); border-radius:var(--radius-card); padding:12px; margin-bottom:12px; box-shadow:var(--shadow);
+  }
+  .order-status{font-size:14px; font-weight:800; margin-bottom:8px;}
+  .order-date{font-size:12px; color:var(--muted); margin-bottom:8px;}
+  .order-items{display:flex; gap:8px; overflow:auto;}
+  .order-item{width:80px; height:80px; border-radius:8px; background:#eef2ff; flex-shrink:0;}
+  .savings-banner{
+    background:linear-gradient(135deg, var(--primary), #4f46e5); color:#fff; border-radius:var(--radius-card); padding:16px; margin:16px 0;
+  }
+  .savings-amount{font-size:24px; font-weight:800;}
+  .interests-empty{text-align:center; color:var(--muted); padding:20px;}
+  .create-interest{
+    background:#fff; border:1px solid var(--border); border-radius:999px; padding:12px; text-align:center; font-weight:700; cursor:pointer;
+  }
+
+  /* Menu Styles */
+  .menu-section{margin:20px 0;}
+  .menu-section h3{font-size:16px; font-weight:800; margin:0 0 12px; color:var(--muted);}
+  .menu-item{
+    background:#fff; border:1px solid var(--border); border-radius:var(--radius-card); padding:16px; margin-bottom:8px; box-shadow:var(--shadow);
+    display:flex; align-items:center; justify-content:space-between; cursor:pointer;
+  }
+  .menu-item:hover{background:#f8fafc;}
+  .menu-item-content{display:flex; align-items:center; gap:12px;}
+  .menu-icon{width:24px; height:24px; opacity:.7;}
+  .menu-text{font-weight:700;}
+  .menu-badge{background:var(--deal); color:#fff; font-size:11px; padding:2px 6px; border-radius:999px; font-weight:800;}
+
+  /* Help Styles */
+  .help-search{
+    background:#fff; border:1px solid var(--border); border-radius:var(--radius-card); padding:16px; margin-bottom:16px; box-shadow:var(--shadow);
+  }
+  .help-search input{width:100%; padding:12px; border:1px solid var(--border); border-radius:999px; font-size:15px;}
+  .help-categories{display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:20px;}
+  .help-category{
+    background:#fff; border:1px solid var(--border); border-radius:var(--radius-card); padding:16px; text-align:center; cursor:pointer; box-shadow:var(--shadow);
+  }
+  .help-category:hover{background:#f8fafc;}
+  .help-category-icon{font-size:24px; margin-bottom:8px;}
+  .help-category-title{font-weight:700; font-size:14px;}
+  .contact-options{background:#fff; border:1px solid var(--border); border-radius:var(--radius-card); padding:16px; box-shadow:var(--shadow);}
+  .contact-item{display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border);}
+  .contact-item:last-child{border-bottom:none;}
+
+  /* Route visibility */
+  [data-route]{display:none}
+  [data-route].active{display:block}
+</style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="search" role="search">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke-width="2"/>
+        </svg>
+        <input placeholder="Search or ask a question" aria-label="Search" />
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <path d="M3 6h18M3 12h18M3 18h18" stroke-linecap="round" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="chips" aria-label="Top chips">
+        <button class="chip">03784</button>
+        <button class="chip primary">Early Prime Deals</button>
+        <button class="chip">Essentials</button>
+        <button class="chip">Haul</button>
+        <button class="chip">Medical Care</button>
+        <button class="chip">Pharmacy In‑Store Code</button>
+        <button class="chip">Alexa Lists</button>
+        <button class="chip">Prime</button>
+        <button class="chip">Video</button>
+        <button class="chip">Music</button>
+      </div>
+    </header>
+
+    <!-- HOME ROUTE -->
+    <main id="home" data-route class="active">
+      <section>
+        <div class="section-head">
+          <h2>Top Rankings</h2>
+          <a class="link" href="#">See all</a>
+        </div>
+        <div class="grid">
+          <article class="card" tabindex="0" aria-label="Cozy Cat Tree">
+            <div class="thumb">
+              <img alt="Cat Tree" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Crect width='100%25' height='100%25' fill='%23e5e7ff'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' font-size='28' fill='%23929ad1'%3ECat Tree%3C/text%3E%3C/svg%3E"/>
+            </div>
+            <div class="meta">
+              <div class="title">Cozy Cat Tree (Top 1)</div>
+              <div class="price"><span>$29.99</span> <span class="cut">$39.99</span></div>
+            </div>
+          </article>
+          <article class="card" tabindex="0" aria-label="Compact Coffee Maker">
+            <div class="thumb">
+              <img alt="Coffee Maker" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Crect width='100%25' height='100%25' fill='%23e5e7ff'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' font-size='28' fill='%23929ad1'%3ECoffee Maker%3C/text%3E%3C/svg%3E"/>
+            </div>
+            <div class="meta">
+              <div class="title">Compact Coffee Maker</div>
+              <div class="price"><span>$59.00</span> <span class="cut">$79.00</span></div>
+            </div>
+          </article>
+          <article class="card" tabindex="0" aria-label="Hydrating Night Cream">
+            <div class="thumb">
+              <img alt="Face Cream" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Crect width='100%25' height='100%25' fill='%23e5e7ff'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' font-size='28' fill='%23929ad1'%3EFace Cream%3C/text%3E%3C/svg%3E"/>
+            </div>
+            <div class="meta">
+              <div class="title">Hydrating Night Cream</div>
+              <div class="price"><span>$14.67</span> <span class="cut">$15.44</span></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Limited Time Deals</h2>
+          <span class="link" style="font-weight:600">Swipe left/right · 02:15:30</span>
+        </div>
+        <div class="h-scroll" aria-label="Limited Time horizontal list">
+          <article class="card">
+            <div class="thumb">
+              <img alt="Electric Toothbrush" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Crect width='100%25' height='100%25' fill='%23e5e7ff'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' font-size='28' fill='%23929ad1'%3EToothbrush%3C/text%3E%3C/svg%3E"/>
+            </div>
+            <div class="meta">
+              <span class="deal-tag">-30%</span>
+              <div class="title">Sonic Electric Toothbrush</div>
+              <div class="price"><span>$29</span> <span class="cut">$41</span></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="thumb">
+              <img alt="Air Fryer" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Crect width='100%25' height='100%25' fill='%23e5e7ff'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' font-size='28' fill='%23929ad1'%3EAir Fryer%3C/text%3E%3C/svg%3E"/>
+            </div>
+            <div class="meta">
+              <span class="deal-tag">-25%</span>
+              <div class="title">3.5L Air Fryer</div>
+              <div class="price"><span>$59</span> <span class="cut">$79</span></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="thumb">
+              <img alt="Earbuds" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Crect width='100%25' height='100%25' fill='%23e5e7ff'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' font-size='28' fill='%23929ad1'%3EEarbuds%3C/text%3E%3C/svg%3E"/>
+            </div>
+            <div class="meta">
+              <span class="deal-tag">-40%</span>
+              <div class="title">Noise-canceling Earbuds</div>
+              <div class="price"><span>$35</span> <span class="cut">$59</span></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Bestsellers</h2>
+          <span class="link">See all</span>
+        </div>
+        <div class="grid" id="bestsellersGrid"></div>
+      </section>
+
+      <section>
+        <div class="banner" role="region" aria-label="New Arrivals">
+          <div>
+            <div class="pill">New Arrivals</div>
+            <div style="font-weight:800; font-size:16px; margin-top:6px">Fresh picks this week</div>
+            <div style="color:#a8b3c7; margin-top:2px; font-size:12px">Curated from brands you follow</div>
+          </div>
+          <a class="link" href="#">Browse</a>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>You May Like</h2>
+          <span class="link">Personalized</span>
+        </div>
+        <div class="grid" id="ymlGrid"></div>
+      </section>
+    </main>
+
+    <!-- CART ROUTE -->
+    <main id="cart" data-route>
+      <div class="cart-header">
+        <h1>Shopping Cart</h1>
+      </div>
+      <div class="cart-list" id="cartList"></div>
+      <div class="divider"></div>
+      <div id="cartEmpty" class="empty-tip" style="display:none">Your cart is empty.</div>
+    </main>
+
+    <!-- ACCOUNT ROUTE -->
+    <main id="account" data-route>
+      <div class="account-header">
+        <div class="user-info">
+          <div class="avatar">P</div>
+          <div>
+            <div class="user-name">Hello, Peiran</div>
+          </div>
+        </div>
+        <div class="user-controls">
+          <button class="icon-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+          <button class="icon-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+              <path d="m13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+          </button>
+          <div style="font-size:12px; padding:4px 8px; border:1px solid var(--border); border-radius:4px;">🇺🇸 EN</div>
+        </div>
+      </div>
+
+      <div class="account-tabs">
+        <button class="tab active" data-tab="orders">Orders</button>
+        <button class="tab" data-tab="interests">Interests</button>
+        <button class="tab" data-tab="account">Account</button>
+        <button class="tab" data-tab="lists">Lists</button>
+      </div>
+
+      <div id="ordersTab" class="tab-content">
+        <div class="section-head">
+          <h2>Your Orders</h2>
+          <a class="link" href="#">→</a>
+        </div>
+
+        <div class="order-card">
+          <div class="order-status">Return complete</div>
+          <div class="order-date">Delivered September 19</div>
+          <div class="order-items">
+            <div class="order-item" style="background:url('data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"80\" height=\"80\"%3E%3Crect width=\"100%25\" height=\"100%25\" fill=\"%23e5e7ff\"/%3E%3Ctext x=\"50%25\" y=\"52%25\" text-anchor=\"middle\" font-size=\"10\" fill=\"%23929ad1\"%3ELancome%3C/text%3E%3C/svg%3E') center/cover"></div>
+            <div class="order-item" style="background:url('data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"80\" height=\"80\"%3E%3Crect width=\"100%25\" height=\"100%25\" fill=\"%23e5e7ff\"/%3E%3Ctext x=\"50%25\" y=\"52%25\" text-anchor=\"middle\" font-size=\"10\" fill=\"%23929ad1\"%3EAir Purifier%3C/text%3E%3C/svg%3E') center/cover"></div>
+          </div>
+        </div>
+
+        <div class="savings-banner">
+          <div class="savings-amount">$72</div>
+          <div>Your savings with Prime in 2025 →</div>
+        </div>
+
+        <div class="section-head">
+          <h2>Buy Again</h2>
+          <a class="link" href="#">→</a>
+        </div>
+        <div class="h-scroll">
+          <article class="card">
+            <div class="thumb">
+              <img alt="CeraVe" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Crect width='100%25' height='100%25' fill='%23e5e7ff'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' font-size='28' fill='%23929ad1'%3ECeraVe%3C/text%3E%3C/svg%3E"/>
+            </div>
+            <div class="meta">
+              <div class="title">CeraVe Night Cream</div>
+              <div class="price"><span>$14.67</span></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="thumb">
+              <img alt="Pillows" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Crect width='100%25' height='100%25' fill='%23e5e7ff'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' font-size='28' fill='%23929ad1'%3EPillows%3C/text%3E%3C/svg%3E"/>
+            </div>
+            <div class="meta">
+              <div class="title">Memory Foam Pillows</div>
+              <div class="price"><span>$24.99</span></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="section-head">
+          <h2>Your Interests</h2>
+          <a class="link" href="#">→</a>
+        </div>
+        <div class="interests-empty">
+          You do not have any Interests yet.
+        </div>
+        <button class="create-interest">Create a new Interest</button>
+      </div>
+    </main>
+
+    <!-- MENU ROUTE -->
+    <main id="menu" data-route>
+      <div class="menu-section">
+        <h3>SHOP BY DEPARTMENT</h3>
+        <div class="menu-item">
+          <div class="menu-item-content">
+            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            </svg>
+            <span class="menu-text">Electronics</span>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-content">
+            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/>
+              <path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/>
+              <path d="M12 3v6"/>
+            </svg>
+            <span class="menu-text">Clothing & Accessories</span>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-content">
+            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2Z"/>
+              <path d="M8 21v-4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/>
+            </svg>
+            <span class="menu-text">Home & Kitchen</span>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="menu-section">
+        <h3>PROGRAMS & FEATURES</h3>
+        <div class="menu-item">
+          <div class="menu-item-content">
+            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            <span class="menu-text">Prime</span>
+          </div>
+          <span class="menu-badge">Prime</span>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-content">
+            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span class="menu-text">Amazon Fresh</span>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-content">
+            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="9" cy="21" r="1"/>
+              <circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            <span class="menu-text">Whole Foods</span>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="menu-section">
+        <h3>SETTINGS</h3>
+        <div class="menu-item">
+          <div class="menu-item-content">
+            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span class="menu-text">Your Account</span>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-content">
+            <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16,17 21,12 16,7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span class="menu-text">Sign Out</span>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </div>
+      </div>
+    </main>
+
+    <!-- HELP ROUTE -->
+    <main id="help" data-route>
+      <div class="help-search">
+        <input type="text" placeholder="Search Help & Customer Service...">
+      </div>
+
+      <div class="help-categories">
+        <div class="help-category">
+          <div class="help-category-icon">📦</div>
+          <div class="help-category-title">Track Package</div>
+        </div>
+        <div class="help-category">
+          <div class="help-category-icon">↩️</div>
+          <div class="help-category-title">Returns</div>
+        </div>
+        <div class="help-category">
+          <div class="help-category-icon">💳</div>
+          <div class="help-category-title">Payment</div>
+        </div>
+        <div class="help-category">
+          <div class="help-category-icon">👤</div>
+          <div class="help-category-title">Account</div>
+        </div>
+        <div class="help-category">
+          <div class="help-category-icon">⚡</div>
+          <div class="help-category-title">Prime</div>
+        </div>
+        <div class="help-category">
+          <div class="help-category-icon">🛡️</div>
+          <div class="help-category-title">Security</div>
+        </div>
+      </div>
+
+      <div class="contact-options">
+        <h3>Contact Us</h3>
+        <div class="contact-item">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+          <div>
+            <div style="font-weight:700;">Phone Support</div>
+            <div style="color:var(--muted); font-size:12px;">Available 24/7</div>
+          </div>
+        </div>
+        <div class="contact-item">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+          <div>
+            <div style="font-weight:700;">Live Chat</div>
+            <div style="color:var(--muted); font-size:12px;">Start a conversation</div>
+          </div>
+        </div>
+        <div class="contact-item">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          <div>
+            <div style="font-weight:700;">Email Support</div>
+            <div style="color:var(--muted); font-size:12px;">Get help via email</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- FAB -->
+    <button class="fab" id="aiBtn" aria-label="Open AI assistant">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="4" stroke-width="2"/>
+      </svg>
+    </button>
+    <div class="toast" id="toast">AI can help with orders, support and quick find.</div>
+
+    <!-- Bottom nav -->
+    <nav class="bottom" aria-label="Bottom navigation">
+      <a class="nav-btn active" data-nav="home">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V21H3z" stroke-width="2"/></svg>
+        <span>Home</span>
+      </a>
+      <a class="nav-btn" data-nav="account">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke-width="2"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="2"/></svg>
+        <span>Account</span>
+      </a>
+      <a class="nav-btn" data-nav="cart">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M6 6h15l-1.5 9H7.5L6 6z" stroke-width="2"/><circle cx="9" cy="20" r="1.6"/><circle cx="18" cy="20" r="1.6"/></svg>
+        <span>Cart</span>
+      </a>
+      <a class="nav-btn" data-nav="menu">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Menu</span>
+      </a>
+      <a class="nav-btn" data-nav="help">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M4 12a8 8 0 0 1 16 0v2" stroke-width="2"/><path d="M12 19v2" stroke-width="2"/></svg>
+        <span>Help</span>
+      </a>
+    </nav>
+  </div>
+
+<script>
+  /* ---------- HOME DEMO DATA ---------- */
+  const bestsellersSeed = [
+    {id:'cat-tree', name:'Stable Cat Tree', price:31.99, cut:49.99, alt:'Cat Tree'},
+    {id:'coffee', name:'Capsule Coffee Maker', price:79.00, cut:99.00, alt:'Coffee Maker'},
+    {id:'cream', name:'Night Repair Cream', price:14.67, cut:15.44, alt:'Face Cream'},
+    {id:'cat-tree', name:'Duplicate Cat Tree', price:31.99, cut:49.99, alt:'Cat Tree (dup)'}
+  ];
+  const ymlSeed = [
+    {id:'cat-toy', name:'Feather Cat Toy Set', price:12.99, cut:16.99, alt:'Cat Toy'},
+    {id:'desk', name:'Minimalist Coffee Table', price:79.99, cut:99.99, alt:'Coffee Table'},
+    {id:'pillow', name:'Memory Foam Pillow', price:24.99, cut:34.99, alt:'Pillow'},
+    {id:'serum', name:'Vitamin C Serum', price:18.99, cut:24.99, alt:'Serum'}
+  ];
+
+  function svgPlaceholder(text){
+    const t = encodeURIComponent(text);
+    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Crect width='100%25' height='100%25' fill='%23e5e7ff'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' font-size='28' fill='%23929ad1'%3E${t}%3C/text%3E%3C/svg%3E`;
+  }
+
+  function renderGrid(list, mountId){
+    const grid = document.getElementById(mountId);
+    if(!grid) return;
+    grid.innerHTML = '';
+    for(const p of list){
+      const card = document.createElement('article');
+      card.className='card';
+      card.innerHTML = `
+        <div class="thumb">
+          <img alt="${p.alt}" src="${svgPlaceholder(p.alt)}"/>
+        </div>
+        <div class="meta">
+          <div class="title">${p.name}</div>
+          <div class="price"><span>$${p.price}</span> <span class="cut">$${p.cut}</span></div>
+        </div>`;
+      grid.appendChild(card);
+    }
+  }
+
+  const uniqueBestsellers = [];
+  const seen = new Set();
+  for(const item of bestsellersSeed){
+    if(!seen.has(item.id)){
+      seen.add(item.id);
+      uniqueBestsellers.push(item);
+    }
+  }
+  renderGrid(uniqueBestsellers, 'bestsellersGrid');
+  renderGrid(ymlSeed, 'ymlGrid');
+
+  /* ---------- ROUTER ---------- */
+  const routes = {
+    home: document.getElementById('home'),
+    cart: document.getElementById('cart'),
+    account: document.getElementById('account'),
+    menu: document.getElementById('menu'),
+    help: document.getElementById('help')
+  };
+
+  function activate(tab){
+    document.querySelectorAll('.nav-btn').forEach(a=>a.classList.toggle('active', a.dataset.nav===tab));
+    Object.keys(routes).forEach(k=>routes[k].classList.toggle('active', k===tab));
+    if(tab==='cart'){ renderCart(); }
+  }
+
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const tab = btn.dataset.nav;
+      activate(tab);
+    });
+  });
+
+  /* ---------- CART DATA & RENDER ---------- */
+  const cartItems = [
+    {
+      id:'cat-tree',
+      title:'Aechonow 14in Cat Tree Tower with 20 * 16.5in Perch Bed',
+      price:37.99,
+      prime:true,
+      delivery:'FREE delivery Tue, Sep 30',
+      stock:'In Stock',
+      qty:1,
+      imgAlt:'Cat Tree',
+      img: svgPlaceholder('Cat Tree')
+    },
+    {
+      id:'cream',
+      title:'CeraVe Skin Renewing Night Cream 1.7oz',
+      price:14.67,
+      prime:true,
+      delivery:'FREE delivery Mon, Sep 29',
+      stock:'In Stock',
+      qty:2,
+      imgAlt:'Night Cream',
+      img: svgPlaceholder('Night Cream')
+    }
+  ];
+
+  function formatMoney(n){ return `$${n.toFixed(2)}`; }
+
+  function renderCart(){
+    const list = document.getElementById('cartList');
+    const empty = document.getElementById('cartEmpty');
+    if(!list || !empty) return;
+
+    list.innerHTML = '';
+    const count = cartItems.reduce((s,it)=>s+it.qty,0);
+
+    if(count===0){
+      empty.style.display='';
+      return;
+    }else{
+      empty.style.display='none';
+    }
+
+    for(const item of cartItems){
+      const row = document.createElement('div');
+      row.className='cart-item';
+      row.innerHTML = `
+        <div class="cart-thumb"><img alt="${item.imgAlt}" src="${item.img}"/></div>
+        <div class="cart-info">
+          <div class="title">${item.title}</div>
+          <div class="cart-meta">
+            <span>${item.prime?'prime Two‑Day':''}</span>
+            <span>${item.delivery}</span>
+            <span style="color:#16a34a">${item.stock}</span>
+          </div>
+          <div class="cart-price">${formatMoney(item.price)}</div>
+
+          <div class="qty-row">
+            <button class="qty-btn" aria-label="Decrease">−</button>
+            <div class="qty-num">${item.qty}</div>
+            <button class="qty-btn" aria-label="Increase">+</button>
+            <button class="btn-chip" style="margin-left:auto">Ask a question</button>
+          </div>
+
+          <div class="actions">
+            <button class="btn-chip">Save for later</button>
+            <button class="btn-chip danger">Delete</button>
+            <button class="btn-chip">Share</button>
+            <button class="btn-checkout">Proceed to checkout</button>
+          </div>
+        </div>
+      `;
+
+      // Qty handlers
+      const [dec,num,inc] = row.querySelectorAll('.qty-row > *');
+      inc.addEventListener('click', ()=>{ item.qty++; renderCart(); });
+      dec.addEventListener('click', ()=>{ item.qty=Math.max(1,item.qty-1); renderCart(); });
+
+      // Delete
+      row.querySelector('.btn-chip.danger').addEventListener('click', ()=>{
+        const i = cartItems.findIndex(it=>it.id===item.id);
+        if(i>-1){ cartItems.splice(i,1); renderCart(); }
+      });
+
+      // Per-item checkout
+      row.querySelector('.btn-checkout').addEventListener('click', ()=>{
+        checkout([item]);
+      });
+
+      list.appendChild(row);
+    }
+  }
+
+  function checkout(items){
+    const payload = items || cartItems;
+    const count = payload.reduce((s,it)=>s+it.qty,0);
+    const total = payload.reduce((s,it)=>s+it.qty*it.price,0);
+    alert(`Proceeding to checkout\nItems: ${count}\nTotal: ${formatMoney(total)}\n(This is a prototype action)`);
+  }
+
+  /* ---------- ACCOUNT TABS ---------- */
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      // In a real app, you'd switch tab content here
+    });
+  });
+
+  /* ---------- AI Toast ---------- */
+  const toast = document.getElementById('toast');
+  document.getElementById('aiBtn').addEventListener('click', ()=>{
+    toast.classList.add('show');
+    clearTimeout(window.__t);
+    window.__t=setTimeout(()=>toast.classList.remove('show'), 2000);
+  });
+
+  /* ---------- Menu Item Clicks ---------- */
+  document.querySelectorAll('.menu-item').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      const text = item.querySelector('.menu-text').textContent;
+      alert(`${text} (demo)`);
+    });
+  });
+
+  /* ---------- Help Category Clicks ---------- */
+  document.querySelectorAll('.help-category').forEach(category=>{
+    category.addEventListener('click', ()=>{
+      const title = category.querySelector('.help-category-title').textContent;
+      alert(`${title} Help (demo)`);
+    });
+  });
+
+  /* ---------- Contact Item Clicks ---------- */
+  document.querySelectorAll('.contact-item').forEach(contact=>{
+    contact.addEventListener('click', ()=>{
+      const type = contact.querySelector('div > div').textContent;
+      alert(`${type} (demo)`);
+    });
+  });
+
+  // Default route
+  activate('home');
+</script>
+</body>
+</html>
